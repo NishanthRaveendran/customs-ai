@@ -36,9 +36,9 @@ export function ChatPanel({
 
   const exampleMessages = [
     {
-      heading: 'What are the',
-      subheading: 'trending memecoins today?',
-      message: `What are the trending memecoins today?`
+      heading: 'File CI1 Form',
+      subheading: 'Provide information for CI1 customs filing',
+      message: `Help me file my CI1 - Canada Customs Invoice form`
     },
     {
       heading: 'What is the price of',
@@ -46,9 +46,9 @@ export function ChatPanel({
       message: 'What is the price of $DOGE right now?'
     },
     {
-      heading: 'I would like to buy',
-      subheading: '42 $DOGE',
-      message: `I would like to buy 42 $DOGE`
+      heading: 'I would like to know about',
+      subheading: 'FDA Rules and Regualtions',
+      message: `I would like to know about FDA Rules and Regulations`
     },
     {
       heading: 'What are some',

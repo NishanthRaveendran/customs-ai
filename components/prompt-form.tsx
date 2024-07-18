@@ -8,7 +8,7 @@ import { useActions, useUIState } from 'ai/rsc'
 import { UserMessage } from './stocks/message'
 import { type AI } from '@/lib/chat/actions'
 import { Button } from '@/components/ui/button'
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons'
+import { IconArrowElbow, IconPlus, IconDownload } from '@/components/ui/icons'
 import {
   Tooltip,
   TooltipContent,
@@ -83,6 +83,19 @@ export function PromptForm({
           </TooltipTrigger>
           <TooltipContent>New Chat</TooltipContent>
         </Tooltip>
+
+        <div className="absolute right-14 top-[13px] sm:right-14">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button type="submit" size="icon">
+                <IconDownload />
+                <span className="sr-only">Upload</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Upload</TooltipContent>
+          </Tooltip>
+        </div>
+        
         <Textarea
           ref={inputRef}
           tabIndex={0}
