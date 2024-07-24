@@ -38,22 +38,22 @@ export function ChatPanel({
     {
       heading: 'File CI1 Form',
       subheading: 'Provide information for CI1 customs filing',
-      message: `Help me file my CI1 - Canada Customs Invoice form`
+      message: `Help me file my Canada Customs Invoice form: https://www.cbsa-asfc.gc.ca/publications/forms-formulaires/ci1.pdf`
     },
     {
-      heading: 'What is the price of',
-      subheading: '$DOGE right now?',
-      message: 'What is the price of $DOGE right now?'
+      heading: 'What PGAs will flag for hairspray?',
+      subheading: 'Partner Government Agencies flags',
+      message: `What PGAs will flag for hairspray?`
+    },
+    {
+      heading: 'Help me classify',
+      subheading: '0.10mm backed aluminum foil',
+      message: `Help me classify 0.10mm backed aluminum foil?`
     },
     {
       heading: 'I would like to know about',
       subheading: 'FDA Rules and Regualtions',
-      message: `I would like to know about FDA Rules and Regulations`
-    },
-    {
-      heading: 'What are some',
-      subheading: `recent events about $DOGE?`,
-      message: `What are some recent events about $DOGE?`
+      message: `I would like to know about FDA Rules and Regulations for shipping goods.`
     }
   ]
 

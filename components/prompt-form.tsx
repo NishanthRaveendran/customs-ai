@@ -84,17 +84,17 @@ export function PromptForm({
           <TooltipContent>New Chat</TooltipContent>
         </Tooltip>
 
-        <div className="absolute right-14 top-[13px] sm:right-14">
+        {/* <div className="absolute right-14 top-[13px] sm:right-14">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button type="submit" size="icon">
+              <Button size="icon">
                 <IconDownload />
                 <span className="sr-only">Upload</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Upload</TooltipContent>
           </Tooltip>
-        </div>
+        </div> */}
         
         <Textarea
           ref={inputRef}
