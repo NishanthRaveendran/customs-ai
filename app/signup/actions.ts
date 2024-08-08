@@ -3,8 +3,7 @@
 import { signIn } from '@/auth'
 import { ResultCode, getStringFromBuffer } from '@/lib/utils'
 import { z } from 'zod'
-import { kv } from '@vercel/kv'
-import { getUser } from '../login/actions'
+import { supabase } from '@/lib/supabase'
 import { AuthError } from 'next-auth'
 
 export async function createUser(
@@ -12,27 +11,45 @@ export async function createUser(
   hashedPassword: string,
   salt: string
 ) {
-  const existingUser = await getUser(email)
+  const { data: existingUser, error: fetchError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .single()
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error('Error checking existing user:', fetchError)
+    return {
+      type: 'error',
+      resultCode: ResultCode.UnknownError
+    }
+  }
 
   if (existingUser) {
     return {
       type: 'error',
       resultCode: ResultCode.UserAlreadyExists
     }
-  } else {
-    const user = {
-      id: crypto.randomUUID(),
-      email,
-      password: hashedPassword,
-      salt
-    }
+  }
 
-    await kv.hmset(`user:${email}`, user)
+  const { error: insertError } = await supabase.from('users').insert({
+    id: crypto.randomUUID(),
+    email,
+    password: hashedPassword,
+    salt
+  })
 
+  if (insertError) {
+    console.error('Error creating user:', insertError)
     return {
-      type: 'success',
-      resultCode: ResultCode.UserCreated
+      type: 'error',
+      resultCode: ResultCode.UnknownError
     }
+  }
+
+  return {
+    type: 'success',
+    resultCode: ResultCode.UserCreated
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { kv } from '@vercel/kv'
+import { supabase } from '@/lib/supabase'
 
 import { auth } from '@/auth'
 import { type Chat } from '@/lib/types'
@@ -13,31 +13,38 @@ export async function getChats(userId?: string | null) {
   }
 
   try {
-    const pipeline = kv.pipeline()
-    const chats: string[] = await kv.zrange(`user:chat:${userId}`, 0, -1, {
-      rev: true
-    })
+    const { data, error } = await supabase
+      .from('chats')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
 
-    for (const chat of chats) {
-      pipeline.hgetall(chat)
+    if (error) {
+      console.error('Error fetching chats:', error)
+      return []
     }
 
-    const results = await pipeline.exec()
-
-    return results as Chat[]
+    return data as Chat[]
   } catch (error) {
+    console.error('Error in getChats:', error)
     return []
   }
 }
 
 export async function getChat(id: string, userId: string) {
-  const chat = await kv.hgetall<Chat>(`chat:${id}`)
+  const { data: chat, error } = await supabase
+    .from('chats')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single()
 
-  if (!chat || (userId && chat.userId !== userId)) {
+  if (error) {
+    console.error('Error fetching chat:', error)
     return null
   }
 
-  return chat
+  return chat as Chat | null
 }
 
 export async function removeChat({ id, path }: { id: string; path: string }) {
@@ -49,17 +56,17 @@ export async function removeChat({ id, path }: { id: string; path: string }) {
     }
   }
 
-  //Convert uid to string for consistent comparison with session.user.id
-  const uid = String(await kv.hget(`chat:${id}`, 'userId'))
+  const { error } = await supabase
+    .from('chats')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', session.user.id)
 
-  if (uid !== session?.user?.id) {
+  if (error) {
     return {
-      error: 'Unauthorized'
+      error: 'Failed to remove chat'
     }
   }
-
-  await kv.del(`chat:${id}`)
-  await kv.zrem(`user:chat:${session.user.id}`, `chat:${id}`)
 
   revalidatePath('/')
   return revalidatePath(path)
@@ -74,31 +81,35 @@ export async function clearChats() {
     }
   }
 
-  const chats: string[] = await kv.zrange(`user:chat:${session.user.id}`, 0, -1)
-  if (!chats.length) {
-    return redirect('/')
-  }
-  const pipeline = kv.pipeline()
+  const { error } = await supabase
+    .from('chats')
+    .delete()
+    .eq('user_id', session.user.id)
 
-  for (const chat of chats) {
-    pipeline.del(chat)
-    pipeline.zrem(`user:chat:${session.user.id}`, chat)
+  if (error) {
+    return {
+      error: 'Failed to clear chats'
+    }
   }
-
-  await pipeline.exec()
 
   revalidatePath('/')
   return redirect('/')
 }
 
 export async function getSharedChat(id: string) {
-  const chat = await kv.hgetall<Chat>(`chat:${id}`)
+  const { data: chat, error } = await supabase
+    .from('chats')
+    .select('*')
+    .eq('id', id)
+    .eq('share_path', `/share/${id}`)
+    .single()
 
-  if (!chat || !chat.sharePath) {
+  if (error) {
+    console.error('Error fetching shared chat:', error)
     return null
   }
 
-  return chat
+  return chat as Chat | null
 }
 
 export async function shareChat(id: string) {
@@ -110,37 +121,74 @@ export async function shareChat(id: string) {
     }
   }
 
-  const chat = await kv.hgetall<Chat>(`chat:${id}`)
+  const { data: chat, error: fetchError } = await supabase
+    .from('chats')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', session.user.id)
+    .single()
 
-  if (!chat || chat.userId !== session.user.id) {
+  if (fetchError) {
     return {
-      error: 'Something went wrong'
+      error: 'Failed to fetch chat'
     }
   }
 
-  const payload = {
-    ...chat,
-    sharePath: `/share/${chat.id}`
+  const sharePath = `/share/${chat.id}`
+
+  const { error: updateError } = await supabase
+    .from('chats')
+    .update({ share_path: sharePath })
+    .eq('id', chat.id)
+
+  if (updateError) {
+    return {
+      error: 'Failed to share chat'
+    }
   }
 
-  await kv.hmset(`chat:${chat.id}`, payload)
-
-  return payload
+  return { ...chat, sharePath }
 }
 
 export async function saveChat(chat: Chat) {
   const session = await auth()
 
-  if (session && session.user) {
-    const pipeline = kv.pipeline()
-    pipeline.hmset(`chat:${chat.id}`, chat)
-    pipeline.zadd(`user:chat:${chat.userId}`, {
-      score: Date.now(),
-      member: `chat:${chat.id}`
-    })
-    await pipeline.exec()
-  } else {
+  if (!session?.user?.id) {
     return
+  }
+
+  const { error } = await supabase.from('chats').upsert({
+    id: chat.id,
+    user_id: chat.userId,
+    title: chat.title,
+    created_at: chat.createdAt,
+    path: chat.path,
+    messages: chat.messages,
+    share_path: chat.sharePath
+  })
+
+  if (error) {
+    console.error('Error saving chat:', error)
+  }
+}
+
+export async function testSupabaseConnection() {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('name')
+      .limit(1)
+
+    if (error) {
+      console.error('Error connecting to Supabase:', error)
+      return false
+    }
+
+    console.log('Successfully connected to Supabase. Sample data:', data)
+    return true
+  } catch (error) {
+    console.error('Error connecting to Supabase:', error)
+    return false
   }
 }
 
